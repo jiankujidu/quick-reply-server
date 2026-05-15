@@ -1,0 +1,742 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>快回复 - 超级管理</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI','PingFang SC','Microsoft YaHei',sans-serif;background:#f5f7fa;height:100vh;display:flex;overflow:hidden}
+
+/* ===== 登录页 ===== */
+.login-wrap{width:100%;height:100vh;display:flex;align-items:center;justify-content:center;background:linear-gradient(135deg,#0f2027 0%,#203a43 50%,#2c5364 100%)}
+.login-card{background:#fff;border-radius:16px;padding:48px 40px;width:380px;box-shadow:0 25px 80px rgba(0,0,0,.3)}
+.login-card .logo{text-align:center;margin-bottom:32px}
+.login-card .logo h1{font-size:24px;color:#1a1a2e;font-weight:700}
+.login-card .logo p{color:#8c8c8c;font-size:13px;margin-top:6px}
+.field-group{margin-bottom:18px}
+.field-group label{display:block;font-size:13px;color:#595959;margin-bottom:6px;font-weight:500}
+.field-group input{width:100%;height:42px;padding:0 14px;border:1px solid #d9d9d9;border-radius:8px;font-size:14px;outline:none;transition:all .25s}
+.field-group input:focus{border-color:#1890ff;box-shadow:0 0 0 3px rgba(24,144,255,.12)}
+.btn-login{width:100%;height:44px;background:linear-gradient(135deg,#1890ff,#096dd9);color:#fff;border:none;border-radius:8px;font-size:15px;font-weight:600;cursor:pointer;transition:all .25s;letter-spacing:1px}
+.btn-login:hover{transform:translateY(-1px);box-shadow:0 4px 16px rgba(24,144,255,.4)}
+.login-error{color:#ff4d4f;font-size:13px;margin-bottom:12px;display:none;padding:8px 12px;background:#fff2f0;border-radius:6px}
+
+/* ===== 主布局 ===== */
+.app{display:none;width:100%;height:100vh}
+
+/* 侧边栏 */
+.sidebar{width:220px;background:linear-gradient(180deg,#001529,#002140);color:#fff;flex-shrink:0;display:flex;flex-direction:column;box-shadow:2px 0 8px rgba(0,0,0,.15)}
+.sidebar .brand{padding:24px 20px 20px;border-bottom:1px solid rgba(255,255,255,.08)}
+.sidebar .brand h2{font-size:17px;font-weight:700;letter-spacing:.5px}
+.sidebar .brand p{font-size:11px;color:rgba(255,255,255,.45);margin-top:4px}
+.sidebar nav{flex:1;padding:12px 0;overflow-y:auto}
+.sidebar nav a{display:flex;align-items:center;gap:10px;padding:11px 22px;color:rgba(255,255,255,.55);text-decoration:none;font-size:14px;cursor:pointer;transition:all .2s;border-left:3px solid transparent;margin:1px 0}
+.sidebar nav a:hover{color:rgba(255,255,255,.85);background:rgba(255,255,255,.06)}
+.sidebar nav a.active{color:#fff;background:rgba(24,144,255,.2);border-left-color:#1890ff}
+.sidebar nav a .icon{font-size:16px;width:20px;text-align:center}
+.sidebar .user-info{padding:16px 20px;border-top:1px solid rgba(255,255,255,.08);display:flex;align-items:center;justify-content:space-between}
+.sidebar .user-info span{font-size:12px;color:rgba(255,255,255,.45)}
+.sidebar .user-info .btn-logout{background:none;border:1px solid rgba(255,255,255,.2);color:rgba(255,255,255,.55);padding:4px 12px;border-radius:4px;font-size:12px;cursor:pointer;transition:all .2s}
+.sidebar .user-info .btn-logout:hover{color:#ff4d4f;border-color:#ff4d4f}
+
+/* 内容区 */
+.main-content{flex:1;display:flex;flex-direction:column;overflow:hidden}
+.topbar{height:56px;background:#fff;border-bottom:1px solid #f0f0f0;display:flex;align-items:center;padding:0 24px;flex-shrink:0;box-shadow:0 1px 4px rgba(0,0,0,.04)}
+.topbar h2{font-size:17px;color:#1a1a2e;font-weight:600}
+.topbar .breadcrumb{font-size:13px;color:#8c8c8c;margin-left:12px}
+.body-content{flex:1;padding:20px 24px;overflow-y:auto}
+
+/* ===== 页面 ===== */
+.page{display:none}
+.page.active{display:block}
+
+/* 统计卡片 */
+.stat-row{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:14px;margin-bottom:20px}
+.stat-card{background:#fff;border-radius:10px;padding:18px 20px;box-shadow:0 1px 4px rgba(0,0,0,.06);transition:all .2s;border-left:3px solid transparent}
+.stat-card:hover{transform:translateY(-2px);box-shadow:0 4px 16px rgba(0,0,0,.1)}
+.stat-card.blue{border-left-color:#1890ff}
+.stat-card.green{border-left-color:#52c41a}
+.stat-card.orange{border-left-color:#fa8c16}
+.stat-card.purple{border-left-color:#722ed1}
+.stat-card .label{font-size:12px;color:#8c8c8c;margin-bottom:6px}
+.stat-card .value{font-size:26px;font-weight:700;color:#1a1a2e}
+
+/* 工具栏 */
+.toolbar{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;gap:12px;flex-wrap:wrap}
+.toolbar-left{display:flex;align-items:center;gap:10px}
+.toolbar input[type=text]{height:36px;padding:0 12px;border:1px solid #d9d9d9;border-radius:6px;font-size:13px;outline:none;min-width:200px;transition:all .2s}
+.toolbar input[type=text]:focus{border-color:#1890ff;box-shadow:0 0 0 2px rgba(24,144,255,.1)}
+
+/* 按钮 */
+.btn{display:inline-flex;align-items:center;gap:5px;padding:7px 16px;border:none;border-radius:6px;font-size:13px;font-weight:500;cursor:pointer;transition:all .2s;white-space:nowrap}
+.btn-primary{background:#1890ff;color:#fff}.btn-primary:hover{background:#096dd9}
+.btn-success{background:#52c41a;color:#fff}.btn-success:hover{background:#389e0d}
+.btn-danger{background:#ff4d4f;color:#fff}.btn-danger:hover{background:#cf1322}
+.btn-ghost{background:transparent;color:#595959;border:1px solid #d9d9d9}.btn-ghost:hover{color:#1890ff;border-color:#1890ff}
+.btn-sm{padding:4px 10px;font-size:12px}
+.btn-link{background:none;border:none;color:#1890ff;padding:0;font-size:13px;cursor:pointer}.btn-link:hover{color:#096dd9}
+.btn-link.danger{color:#ff4d4f}.btn-link.danger:hover{color:#cf1322}
+
+/* 表格 */
+.table-wrap{background:#fff;border-radius:10px;box-shadow:0 1px 4px rgba(0,0,0,.06);overflow:hidden}
+table{width:100%;border-collapse:collapse}
+th{padding:12px 16px;text-align:left;font-size:12px;font-weight:600;color:#8c8c8c;text-transform:uppercase;letter-spacing:.5px;background:#fafafa;border-bottom:1px solid #f0f0f0;white-space:nowrap}
+td{padding:11px 16px;font-size:13px;color:#333;border-bottom:1px solid #f5f5f5;max-width:300px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+tr:hover td{background:#e6f7ff}
+td.actions{white-space:nowrap}
+
+/* 标签 */
+.tag{display:inline-block;padding:2px 10px;border-radius:12px;font-size:11px;font-weight:500;letter-spacing:.3px}
+.tag-super{background:#f9f0ff;color:#722ed1}
+.tag-admin{background:#e6f7ff;color:#1890ff}
+.tag-agent{background:#f0f0f0;color:#666}
+.tag-active{background:#f6ffed;color:#52c41a}
+.tag-disabled{background:#fff1f0;color:#ff4d4f}
+.tag-company{background:#e6f7ff;color:#1890ff}
+.tag-department{background:#fff7e6;color:#fa8c16}
+.tag-personal{background:#f9f0ff;color:#722ed1}
+
+/* 弹窗 */
+.modal-overlay{position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,.45);z-index:1000;display:none;align-items:center;justify-content:center}
+.modal-overlay.show{display:flex}
+.modal{background:#fff;border-radius:12px;width:440px;max-width:90vw;box-shadow:0 12px 48px rgba(0,0,0,.2);animation:modalIn .2s ease}
+@keyframes modalIn{from{opacity:0;transform:scale(.95) translateY(10px)}to{opacity:1;transform:scale(1) translateY(0)}}
+.modal-header{padding:20px 24px 0;display:flex;align-items:center;justify-content:space-between}
+.modal-header h3{font-size:16px;color:#1a1a2e;font-weight:600}
+.modal-header .close{background:none;border:none;font-size:20px;color:#bfbfbf;cursor:pointer;padding:4px}
+.modal-header .close:hover{color:#595959}
+.modal-body{padding:20px 24px}
+.modal-body .form-row{margin-bottom:16px}
+.modal-body label{display:block;font-size:13px;color:#595959;margin-bottom:6px;font-weight:500}
+.modal-body input,.modal-body select,.modal-body textarea{width:100%;height:38px;padding:0 12px;border:1px solid #d9d9d9;border-radius:6px;font-size:13px;outline:none;transition:all .2s}
+.modal-body textarea{height:80px;padding:8px 12px;resize:vertical}
+.modal-body input:focus,.modal-body select:focus,.modal-body textarea:focus{border-color:#1890ff;box-shadow:0 0 0 2px rgba(24,144,255,.1)}
+.modal-footer{padding:0 24px 20px;display:flex;justify-content:flex-end;gap:10px}
+
+/* 空状态 */
+.empty{text-align:center;padding:60px 20px;color:#bfbfbf}
+.empty .icon{font-size:40px;margin-bottom:12px}
+.empty p{font-size:14px}
+
+/* Toast */
+.toast{position:fixed;top:20px;right:20px;z-index:2000;padding:12px 20px;border-radius:8px;font-size:13px;color:#fff;box-shadow:0 4px 16px rgba(0,0,0,.15);transform:translateX(120%);transition:transform .3s ease}
+.toast.show{transform:translateX(0)}
+.toast.success{background:#52c41a}
+.toast.error{background:#ff4d4f}
+
+/* 编辑行 */
+.edit-row{background:#fffbe6!important}
+input.edit-input{height:30px;padding:0 8px;border:1px solid #1890ff;border-radius:4px;font-size:12px;outline:none;width:100%}
+select.edit-select{height:30px;padding:0 6px;border:1px solid #1890ff;border-radius:4px;font-size:12px;outline:none}
+</style>
+</head>
+<body>
+
+<!-- Toast -->
+<div class="toast" id="toast"></div>
+
+<!-- ===== 登录页 ===== -->
+<div class="login-wrap" id="loginPage">
+  <div class="login-card">
+    <div class="logo">
+      <h1>🛡️ 快回复管理</h1>
+      <p>超级管理员控制台</p>
+    </div>
+    <div class="login-error" id="loginError"></div>
+    <div class="field-group">
+      <label>用户名</label>
+      <input type="text" id="loginUser" placeholder="请输入用户名" autocomplete="username">
+    </div>
+    <div class="field-group">
+      <label>密码</label>
+      <input type="password" id="loginPass" placeholder="请输入密码" autocomplete="current-password">
+    </div>
+    <button class="btn-login" onclick="doLogin()">登 录</button>
+  </div>
+</div>
+
+<!-- ===== 主界面 ===== -->
+<div class="app" id="mainPage">
+  <div class="sidebar">
+    <div class="brand">
+      <h2>🛡️ 快回复</h2>
+      <p>超级管理控制台</p>
+    </div>
+    <nav>
+      <a class="active" data-page="dashboard"><span class="icon">📊</span>概览</a>
+      <a data-page="companies"><span class="icon">🏢</span>公司</a>
+      <a data-page="departments"><span class="icon">📂</span>部门</a>
+      <a data-page="users"><span class="icon">👤</span>用户</a>
+      <a data-page="categories"><span class="icon">📁</span>分类</a>
+      <a data-page="messages"><span class="icon">💬</span>话术</a>
+    </nav>
+    <div class="user-info">
+      <span id="userName">admin</span>
+      <button class="btn-logout" onclick="doLogout()">退出</button>
+    </div>
+  </div>
+
+  <div class="main-content">
+    <div class="topbar">
+      <h2 id="pageTitle">概览</h2>
+      <span class="breadcrumb" id="pageDesc"></span>
+    </div>
+    <div class="body-content">
+
+      <!-- 概览 -->
+      <div class="page active" id="page-dashboard">
+        <div class="stat-row" id="statCards"></div>
+        <div class="table-wrap">
+          <table><thead><tr><th>最近操作</th><th>时间</th></tr></thead><tbody id="tb-activity"><tr><td colspan="2" class="empty">暂无操作记录</td></tr></tbody></table>
+        </div>
+      </div>
+
+      <!-- 公司 -->
+      <div class="page" id="page-companies">
+        <div class="toolbar">
+          <div class="toolbar-left">
+            <input type="text" id="search-company" placeholder="搜索公司..." oninput="filterTable('tb-companies',this.value)">
+          </div>
+          <button class="btn btn-primary" onclick="openModal('company')">+ 新增公司</button>
+        </div>
+        <div class="table-wrap">
+          <table><thead><tr><th>ID</th><th>公司名称</th><th>部门数</th><th>用户数</th><th>创建时间</th><th>操作</th></tr></thead><tbody id="tb-companies"></tbody></table>
+        </div>
+      </div>
+
+      <!-- 部门 -->
+      <div class="page" id="page-departments">
+        <div class="toolbar">
+          <div class="toolbar-left">
+            <input type="text" id="search-dept" placeholder="搜索部门..." oninput="filterTable('tb-departments',this.value)">
+            <select id="filter-dept-company" onchange="loadDepartments()" style="height:36px;padding:0 10px;border:1px solid #d9d9d9;border-radius:6px;font-size:13px"><option value="">全部公司</option></select>
+          </div>
+          <button class="btn btn-primary" onclick="openModal('department')">+ 新增部门</button>
+        </div>
+        <div class="table-wrap">
+          <table><thead><tr><th>ID</th><th>部门名称</th><th>所属公司</th><th>用户数</th><th>创建时间</th><th>操作</th></tr></thead><tbody id="tb-departments"></tbody></table>
+        </div>
+      </div>
+
+      <!-- 用户 -->
+      <div class="page" id="page-users">
+        <div class="toolbar">
+          <div class="toolbar-left">
+            <input type="text" id="search-user" placeholder="搜索用户..." oninput="filterTable('tb-users',this.value)">
+            <select id="filter-user-role" onchange="loadUsers()" style="height:36px;padding:0 10px;border:1px solid #d9d9d9;border-radius:6px;font-size:13px"><option value="">全部角色</option><option value="admin">管理员</option><option value="agent">客服</option></select>
+          </div>
+          <button class="btn btn-primary" onclick="openModal('user')">+ 新增用户</button>
+        </div>
+        <div class="table-wrap">
+          <table><thead><tr><th>ID</th><th>用户名</th><th>角色</th><th>公司</th><th>部门</th><th>状态</th><th>最后登录</th><th>操作</th></tr></thead><tbody id="tb-users"></tbody></table>
+        </div>
+      </div>
+
+      <!-- 分类 -->
+      <div class="page" id="page-categories">
+        <div class="toolbar">
+          <div class="toolbar-left">
+            <input type="text" id="search-cat" placeholder="搜索分类..." oninput="filterTable('tb-categories',this.value)">
+            <select id="filter-cat-level" onchange="loadCategories()" style="height:36px;padding:0 10px;border:1px solid #d9d9d9;border-radius:6px;font-size:13px"><option value="">全部层级</option><option value="company">公司级</option><option value="department">部门级</option><option value="personal">个人级</option></select>
+          </div>
+          <button class="btn btn-primary" onclick="openModal('category')">+ 新增分类</button>
+        </div>
+        <div class="table-wrap">
+          <table><thead><tr><th>ID</th><th>名称</th><th>层级</th><th>公司</th><th>部门</th><th>创建者</th><th>话术数</th><th>操作</th></tr></thead><tbody id="tb-categories"></tbody></table>
+        </div>
+      </div>
+
+      <!-- 话术 -->
+      <div class="page" id="page-messages">
+        <div class="toolbar">
+          <div class="toolbar-left">
+            <input type="text" id="search-msg" placeholder="搜索话术..." oninput="filterTable('tb-messages',this.value)">
+          </div>
+          <button class="btn btn-primary" onclick="openModal('message')">+ 新增话术</button>
+        </div>
+        <div class="table-wrap">
+          <table><thead><tr><th>ID</th><th>标题</th><th>内容</th><th>分类</th><th>创建者</th><th>更新时间</th><th>操作</th></tr></thead><tbody id="tb-messages"></tbody></table>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<!-- ===== 弹窗 ===== -->
+<div class="modal-overlay" id="modalOverlay" onclick="if(event.target===this)closeModal()">
+  <div class="modal">
+    <div class="modal-header">
+      <h3 id="modalTitle">新增</h3>
+      <button class="close" onclick="closeModal()">&times;</button>
+    </div>
+    <div class="modal-body" id="modalBody"></div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeModal()">取消</button>
+      <button class="btn btn-primary" id="modalSubmit" onclick="submitModal()">确认</button>
+    </div>
+  </div>
+</div>
+
+<script>
+const API = location.origin;
+let TOKEN = '';
+let ws = null;
+let companyList = [];
+let deptList = [];
+let categoryList = [];
+let currentModalType = '';
+
+// ====== 导航 ======
+const pageTitles = {dashboard:'概览',companies:'公司管理',departments:'部门管理',users:'用户管理',categories:'分类管理',messages:'话术管理'};
+const pageDescs = {dashboard:'',companies:'管理所有公司信息',departments:'管理所有部门信息',users:'管理所有用户账号',categories:'管理所有话术分类',messages:'管理所有话术内容'};
+
+document.querySelectorAll('.sidebar nav a').forEach(a => {
+  a.onclick = () => {
+    document.querySelectorAll('.sidebar nav a').forEach(x => x.classList.remove('active'));
+    a.classList.add('active');
+    document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+    document.getElementById('page-' + a.dataset.page).classList.add('active');
+    document.getElementById('pageTitle').textContent = pageTitles[a.dataset.page] || '';
+    document.getElementById('pageDesc').textContent = pageDescs[a.dataset.page] || '';
+  };
+});
+
+// ====== Toast ======
+function toast(msg, type='success') {
+  const el = document.getElementById('toast');
+  el.textContent = msg;
+  el.className = 'toast ' + type + ' show';
+  setTimeout(() => el.classList.remove('show'), 2500);
+}
+
+// ====== 登录 ======
+async function doLogin() {
+  const u = document.getElementById('loginUser').value.trim();
+  const p = document.getElementById('loginPass').value.trim();
+  const errEl = document.getElementById('loginError');
+  if (!u || !p) { errEl.textContent = '请输入用户名和密码'; errEl.style.display = 'block'; return; }
+  try {
+    const r = await fetch(API + '/api/auth/login', {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({username:u,password:p})});
+    const d = await r.json();
+    if (d.code !== 0) { errEl.textContent = d.message; errEl.style.display = 'block'; return; }
+    if (d.data.user.role !== 'super_admin') { errEl.textContent = '需要超级管理员权限'; errEl.style.display = 'block'; return; }
+    TOKEN = d.data.token;
+    document.getElementById('userName').textContent = d.data.user.username;
+    document.getElementById('loginPage').style.display = 'none';
+    document.getElementById('mainPage').style.display = 'flex';
+    loadAll();
+    connectWs();
+  } catch(e) { errEl.textContent = '网络错误'; errEl.style.display = 'block'; }
+}
+
+function doLogout() {
+  fetch(API + '/api/auth/logout',{method:'POST',headers:{'Authorization':TOKEN}}).catch(()=>{});
+  TOKEN = '';
+  disconnectWs();
+  document.getElementById('loginPage').style.display = 'flex';
+  document.getElementById('mainPage').style.display = 'none';
+}
+
+document.getElementById('loginPass').addEventListener('keydown', e => { if(e.key==='Enter') doLogin(); });
+
+// ====== API ======
+async function api(path, opts={}) {
+  const h = {'Authorization':TOKEN,'Content-Type':'application/json'};
+  const r = await fetch(API + path, {...opts, headers:{...h,...opts.headers}});
+  return r.json();
+}
+
+// ====== WebSocket ======
+function connectWs() {
+  if (ws) return;
+  const wsUrl = API.replace(/^http/,'ws') + '/ws?token=' + TOKEN;
+  ws = new WebSocket(wsUrl);
+  ws.onmessage = e => {
+    try {
+      const d = JSON.parse(e.data);
+      const t = d.type || d.event;
+      if (t && t.startsWith('company')) loadCompanies();
+      if (t && t.startsWith('department')) loadDepartments();
+      if (t && t.startsWith('user')) loadUsers();
+      if (t && t.startsWith('category')) loadCategories();
+      if (t && t.startsWith('message')) loadMessages();
+    } catch(x){}
+  };
+  ws.onclose = () => { ws = null; setTimeout(connectWs, 3000); };
+  ws.onerror = () => { ws = null; };
+}
+function disconnectWs() { if(ws){ws.onclose=null;ws.close();ws=null;} }
+
+// ====== 数据加载 ======
+function loadAll() { loadStats(); loadCompanies(); loadDepartments(); loadUsers(); loadCategories(); loadMessages(); }
+
+async function loadStats() {
+  try {
+    const d = await api('/api/admin/stats');
+    if (d.code !== 0) return;
+    const s = d.data;
+    document.getElementById('statCards').innerHTML = [
+      {label:'公司',value:s.companies,cls:'blue',icon:'🏢'},
+      {label:'用户',value:s.users,cls:'green',icon:'👤'},
+      {label:'分类',value:s.categories,cls:'orange',icon:'📁'},
+      {label:'话术',value:s.messages,cls:'purple',icon:'💬'}
+    ].map(c => `<div class="stat-card ${c.cls}"><div class="label">${c.icon} ${c.label}</div><div class="value">${c.value}</div></div>`).join('');
+  } catch(e){}
+}
+
+async function loadCompanies() {
+  try {
+    const d = await api('/api/admin/companies');
+    if (d.code !== 0) return;
+    companyList = d.data.items || [];
+    const tb = document.getElementById('tb-companies');
+    if (!companyList.length) { tb.innerHTML = '<tr><td colspan="6" class="empty">暂无公司</td></tr>'; }
+    else {
+      tb.innerHTML = companyList.map(c => {
+        const depts = deptList.filter(d => d.company_id === c.id).length;
+        const users = userList.filter(u => u.company_id === c.id).length;
+        return `<tr><td>${c.id}</td><td><strong>${esc(c.name)}</strong></td><td>${depts}</td><td>${users}</td><td>${fmtTime(c.created_at)}</td><td class="actions"><button class="btn-link" onclick="openEditModal('company',${c.id})">编辑</button><button class="btn-link danger" onclick="delCompany(${c.id})">删除</button></td></tr>`;
+      }).join('');
+    }
+    fillCompanySelects();
+  } catch(e){}
+}
+
+let userList = [];
+async function loadUsers() {
+  try {
+    const d = await api('/api/admin/users');
+    if (d.code !== 0) return;
+    userList = d.data.items || [];
+    const roleFilter = document.getElementById('filter-user-role').value;
+    let items = userList;
+    if (roleFilter) items = items.filter(u => u.role === roleFilter);
+    const tb = document.getElementById('tb-users');
+    if (!items.length) { tb.innerHTML = '<tr><td colspan="8" class="empty">暂无用户</td></tr>'; }
+    else {
+      tb.innerHTML = items.map(u => `<tr><td>${u.id}</td><td><strong>${esc(u.username)}</strong></td><td>${roleTag(u.role)}</td><td>${esc(u.company_name||'-')}</td><td>${esc(u.department_name||'-')}</td><td>${statusTag(u.status)}</td><td>${fmtTime(u.last_login)}</td><td class="actions"><button class="btn-link" onclick="openEditModal('user',${u.id})">编辑</button><button class="btn-link danger" onclick="delUser(${u.id})">删除</button></td></tr>`).join('');
+    }
+  } catch(e){}
+}
+
+async function loadDepartments() {
+  try {
+    let url = '/api/admin/departments';
+    const cid = document.getElementById('filter-dept-company').value;
+    if (cid) url += '?company_id=' + cid;
+    const d = await api(url);
+    if (d.code !== 0) return;
+    deptList = d.data.items || [];
+    const tb = document.getElementById('tb-departments');
+    if (!deptList.length) { tb.innerHTML = '<tr><td colspan="6" class="empty">暂无部门</td></tr>'; }
+    else {
+      tb.innerHTML = deptList.map(dp => {
+        const users = userList.filter(u => u.department_id === dp.id).length;
+        return `<tr><td>${dp.id}</td><td><strong>${esc(dp.name)}</strong></td><td>${esc(dp.company_name||'-')}</td><td>${users}</td><td>${fmtTime(dp.created_at)}</td><td class="actions"><button class="btn-link" onclick="openEditModal('department',${dp.id})">编辑</button><button class="btn-link danger" onclick="delDept(${dp.id})">删除</button></td></tr>`;
+      }).join('');
+    }
+    fillDeptFilterSelect();
+  } catch(e){}
+}
+
+async function loadCategories() {
+  try {
+    const d = await api('/api/admin/categories');
+    if (d.code !== 0) return;
+    categoryList = d.data.items || [];
+    const levelFilter = document.getElementById('filter-cat-level').value;
+    let items = categoryList;
+    if (levelFilter) items = items.filter(c => c.level === levelFilter);
+    const tb = document.getElementById('tb-categories');
+    if (!items.length) { tb.innerHTML = '<tr><td colspan="8" class="empty">暂无分类</td></tr>'; }
+    else {
+      tb.innerHTML = items.map(c => `<tr><td>${c.id}</td><td><strong>${esc(c.name)}</strong></td><td>${levelTag(c.level)}</td><td>${esc(c.company_name||'-')}</td><td>${esc(c.department_name||'-')}</td><td>${esc(c.username||'-')}</td><td>-</td><td class="actions"><button class="btn-link" onclick="openEditModal('category',${c.id})">编辑</button><button class="btn-link danger" onclick="delCat(${c.id})">删除</button></td></tr>`).join('');
+    }
+    fillCategorySelect();
+  } catch(e){}
+}
+
+async function loadMessages() {
+  try {
+    const d = await api('/api/admin/messages');
+    if (d.code !== 0) return;
+    const items = d.data.items || [];
+    const tb = document.getElementById('tb-messages');
+    if (!items.length) { tb.innerHTML = '<tr><td colspan="7" class="empty">暂无话术</td></tr>'; }
+    else {
+      tb.innerHTML = items.map(m => `<tr><td>${m.id}</td><td><strong>${esc(m.title)}</strong></td><td title="${esc(m.content)}">${esc(truncate(m.content,50))}</td><td>${esc(m.category_name||'-')}</td><td>${esc(m.username||'-')}</td><td>${fmtTime(m.updated_at||m.created_at)}</td><td class="actions"><button class="btn-link" onclick="openEditModal('message',${m.id})">编辑</button><button class="btn-link danger" onclick="delMsg(${m.id})">删除</button></td></tr>`).join('');
+    }
+  } catch(e){}
+}
+
+// ====== 下拉框填充 ======
+function fillCompanySelects() {
+  const opts = '<option value="">请选择公司</option>' + companyList.map(c => `<option value="${c.id}">${esc(c.name)}</option>`).join('');
+  ['add-dept-company','add-user-company','add-cat-company'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.innerHTML = opts;
+  });
+  fillDeptFilterSelect();
+  const uc = document.getElementById('add-user-company');
+  if (uc) uc.onchange = () => fillDeptSelect(uc.value);
+}
+
+function fillDeptFilterSelect() {
+  const sel = document.getElementById('filter-dept-company');
+  if (!sel) return;
+  const cur = sel.value;
+  sel.innerHTML = '<option value="">全部公司</option>' + companyList.map(c => `<option value="${c.id}">${esc(c.name)}</option>`).join('');
+  sel.value = cur;
+}
+
+async function fillDeptSelect(companyId) {
+  const sel = document.getElementById('add-user-dept');
+  if (!sel) return;
+  if (!companyId) { sel.innerHTML = '<option value="">请选择部门</option>'; return; }
+  try {
+    const d = await api('/api/admin/departments?company_id=' + companyId);
+    const items = (d.data && d.data.items) || [];
+    sel.innerHTML = '<option value="">请选择部门</option>' + items.map(dp => `<option value="${dp.id}">${esc(dp.name)}</option>`).join('');
+  } catch(e) { sel.innerHTML = '<option value="">请选择部门</option>'; }
+}
+
+function fillCategorySelect() {
+  const sel = document.getElementById('add-msg-cat');
+  if (!sel) return;
+  sel.innerHTML = '<option value="">请选择分类</option>' + categoryList.map(c => `<option value="${c.id}">${esc(c.name)}</option>`).join('');
+}
+
+// ====== 弹窗 ======
+function openModal(type) {
+  currentModalType = type;
+  const body = document.getElementById('modalBody');
+  const title = document.getElementById('modalTitle');
+  const companyOpts = '<option value="">请选择公司</option>' + companyList.map(c => `<option value="${c.id}">${esc(c.name)}</option>`).join('');
+
+  if (type === 'company') {
+    title.textContent = '新增公司';
+    body.innerHTML = `<div class="form-row"><label>公司名称</label><input id="m-company-name" placeholder="输入公司名称"></div>`;
+  } else if (type === 'department') {
+    title.textContent = '新增部门';
+    body.innerHTML = `<div class="form-row"><label>所属公司</label><select id="m-dept-company">${companyOpts}</select></div><div class="form-row"><label>部门名称</label><input id="m-dept-name" placeholder="输入部门名称"></div>`;
+  } else if (type === 'user') {
+    title.textContent = '新增用户';
+    body.innerHTML = `<div class="form-row"><label>用户名</label><input id="m-user-name" placeholder="输入用户名"></div><div class="form-row"><label>密码</label><input id="m-user-pass" type="password" placeholder="至少6位"></div><div class="form-row"><label>角色</label><select id="m-user-role"><option value="agent">客服</option><option value="admin">管理员</option></select></div><div class="form-row"><label>所属公司</label><select id="m-user-company" onchange="fillDeptSelect(this.value)">${companyOpts}</select></div><div class="form-row"><label>所属部门</label><select id="add-user-dept"><option value="">请先选择公司</option></select></div>`;
+  } else if (type === 'category') {
+    title.textContent = '新增分类';
+    body.innerHTML = `<div class="form-row"><label>分类名称</label><input id="m-cat-name" placeholder="输入分类名称"></div><div class="form-row"><label>层级</label><select id="m-cat-level"><option value="company">公司级</option><option value="department">部门级</option><option value="personal">个人级</option></select></div><div class="form-row"><label>所属公司</label><select id="m-cat-company">${companyOpts}</select></div>`;
+  } else if (type === 'message') {
+    title.textContent = '新增话术';
+    const catOpts = '<option value="">请选择分类</option>' + categoryList.map(c => `<option value="${c.id}">${esc(c.name)}</option>`).join('');
+    body.innerHTML = `<div class="form-row"><label>标题</label><input id="m-msg-title" placeholder="输入话术标题"></div><div class="form-row"><label>内容</label><textarea id="m-msg-content" placeholder="输入话术内容"></textarea></div><div class="form-row"><label>分类</label><select id="m-msg-cat">${catOpts}</select></div>`;
+  }
+
+  document.getElementById('modalOverlay').classList.add('show');
+}
+
+function openEditModal(type, id) {
+  currentModalType = type + '_edit';
+  const body = document.getElementById('modalBody');
+  const title = document.getElementById('modalTitle');
+
+  if (type === 'company') {
+    const c = companyList.find(x => x.id === id);
+    if (!c) return;
+    title.textContent = '编辑公司';
+    body.innerHTML = `<div class="form-row"><label>公司名称</label><input id="m-company-name" value="${esc(c.name)}"></div>`;
+    body.dataset.editId = id;
+  } else if (type === 'department') {
+    const d = deptList.find(x => x.id === id);
+    if (!d) return;
+    const companyOpts = '<option value="">请选择公司</option>' + companyList.map(c => `<option value="${c.id}"${c.id===d.company_id?' selected':''}>${esc(c.name)}</option>`).join('');
+    title.textContent = '编辑部门';
+    body.innerHTML = `<div class="form-row"><label>所属公司</label><select id="m-dept-company">${companyOpts}</select></div><div class="form-row"><label>部门名称</label><input id="m-dept-name" value="${esc(d.name)}"></div>`;
+    body.dataset.editId = id;
+  } else if (type === 'user') {
+    const u = userList.find(x => x.id === id);
+    if (!u) return;
+    const companyOpts = '<option value="">请选择公司</option>' + companyList.map(c => `<option value="${c.id}"${c.id===u.company_id?' selected':''}>${esc(c.name)}</option>`).join('');
+    title.textContent = '编辑用户';
+    body.innerHTML = `<div class="form-row"><label>用户名</label><input id="m-user-name" value="${esc(u.username)}" disabled style="background:#f5f5f5"></div><div class="form-row"><label>新密码（留空不修改）</label><input id="m-user-pass" type="password" placeholder="留空不修改"></div><div class="form-row"><label>角色</label><select id="m-user-role"><option value="agent"${u.role==='agent'?' selected':''}>客服</option><option value="admin"${u.role==='admin'?' selected':''}>管理员</option></select></div><div class="form-row"><label>状态</label><select id="m-user-status"><option value="active"${u.status==='active'?' selected':''}>正常</option><option value="disabled"${u.status==='disabled'?' selected':''}>禁用</option></select></div><div class="form-row"><label>所属公司</label><select id="m-user-company" onchange="fillDeptSelect(this.value)">${companyOpts}</select></div><div class="form-row"><label>所属部门</label><select id="add-user-dept"><option value="">请先选择公司</option></select></div>`;
+    body.dataset.editId = id;
+    // Load departments for this user's company
+    if (u.company_id) fillDeptSelect(u.company_id.toString()).then(() => {
+      const deptSel = document.getElementById('add-user-dept');
+      if (deptSel && u.department_id) deptSel.value = u.department_id;
+    });
+  } else if (type === 'category') {
+    const c = categoryList.find(x => x.id === id);
+    if (!c) return;
+    const companyOpts = '<option value="">请选择公司</option>' + companyList.map(co => `<option value="${co.id}"${co.id===c.company_id?' selected':''}>${esc(co.name)}</option>`).join('');
+    title.textContent = '编辑分类';
+    body.innerHTML = `<div class="form-row"><label>分类名称</label><input id="m-cat-name" value="${esc(c.name)}"></div><div class="form-row"><label>层级</label><select id="m-cat-level"><option value="company"${c.level==='company'?' selected':''}>公司级</option><option value="department"${c.level==='department'?' selected':''}>部门级</option><option value="personal"${c.level==='personal'?' selected':''}>个人级</option></select></div><div class="form-row"><label>所属公司</label><select id="m-cat-company">${companyOpts}</select></div>`;
+    body.dataset.editId = id;
+  } else if (type === 'message') {
+    // Find message from current table data
+    title.textContent = '编辑话术';
+    body.innerHTML = `<div class="form-row"><label>标题</label><input id="m-msg-title"></div><div class="form-row"><label>内容</label><textarea id="m-msg-content"></textarea></div>`;
+    body.dataset.editId = id;
+    // Fetch message details
+    api('/api/admin/messages').then(d => {
+      const m = (d.data?.items||[]).find(x => x.id === id);
+      if (m) {
+        document.getElementById('m-msg-title').value = m.title || '';
+        document.getElementById('m-msg-content').value = m.content || '';
+      }
+    });
+  }
+
+  document.getElementById('modalOverlay').classList.add('show');
+}
+
+function closeModal() {
+  document.getElementById('modalOverlay').classList.remove('show');
+  currentModalType = '';
+}
+
+async function submitModal() {
+  const body = document.getElementById('modalBody');
+  const type = currentModalType;
+
+  try {
+    if (type === 'company') {
+      const name = document.getElementById('m-company-name').value.trim();
+      if (!name) { toast('请输入公司名称','error'); return; }
+      const d = await api('/api/admin/companies',{method:'POST',body:JSON.stringify({name})});
+      if (d.code===0) { toast('创建成功'); closeModal(); loadCompanies(); loadStats(); }
+      else toast(d.message,'error');
+    } else if (type === 'company_edit') {
+      const name = document.getElementById('m-company-name').value.trim();
+      const id = body.dataset.editId;
+      // No update API for company name, skip for now
+      toast('暂不支持编辑公司名称','error');
+    } else if (type === 'department') {
+      const company_id = parseInt(document.getElementById('m-dept-company').value);
+      const name = document.getElementById('m-dept-name').value.trim();
+      if (!company_id) { toast('请选择公司','error'); return; }
+      if (!name) { toast('请输入部门名称','error'); return; }
+      const d = await api('/api/admin/departments',{method:'POST',body:JSON.stringify({name,company_id})});
+      if (d.code===0) { toast('创建成功'); closeModal(); loadDepartments(); loadStats(); }
+      else toast(d.message,'error');
+    } else if (type === 'department_edit') {
+      const name = document.getElementById('m-dept-name').value.trim();
+      const id = body.dataset.editId;
+      if (!name) { toast('请输入部门名称','error'); return; }
+      const d = await api('/api/admin/departments/'+id,{method:'PUT',body:JSON.stringify({name})});
+      if (d.code===0) { toast('更新成功'); closeModal(); loadDepartments(); }
+      else toast(d.message,'error');
+    } else if (type === 'user') {
+      const username = document.getElementById('m-user-name').value.trim();
+      const password = document.getElementById('m-user-pass').value.trim();
+      const role = document.getElementById('m-user-role').value;
+      const companyId = parseInt(document.getElementById('m-user-company').value);
+      const deptId = parseInt(document.getElementById('add-user-dept').value) || null;
+      if (!username) { toast('请输入用户名','error'); return; }
+      if (!password||password.length<6) { toast('密码至少6位','error'); return; }
+      if (!companyId) { toast('请选择公司','error'); return; }
+      const d = await api('/api/admin/users',{method:'POST',body:JSON.stringify({username,password,role,companyId,departmentId:deptId})});
+      if (d.code===0) { toast('创建成功'); closeModal(); loadUsers(); loadStats(); }
+      else toast(d.message,'error');
+    } else if (type === 'user_edit') {
+      const id = body.dataset.editId;
+      const role = document.getElementById('m-user-role').value;
+      const status = document.getElementById('m-user-status').value;
+      const password = document.getElementById('m-user-pass').value.trim();
+      const companyId = parseInt(document.getElementById('m-user-company').value);
+      const deptId = parseInt(document.getElementById('add-user-dept').value) || null;
+      const data = {role,status,departmentId:deptId,companyId};
+      if (password && password.length >= 6) data.password = password;
+      const d = await api('/api/admin/users/'+id,{method:'PUT',body:JSON.stringify(data)});
+      if (d.code===0) { toast('更新成功'); closeModal(); loadUsers(); }
+      else toast(d.message,'error');
+    } else if (type === 'category') {
+      const name = document.getElementById('m-cat-name').value.trim();
+      const level = document.getElementById('m-cat-level').value;
+      const company_id = parseInt(document.getElementById('m-cat-company').value);
+      if (!name) { toast('请输入分类名称','error'); return; }
+      if (!company_id) { toast('请选择公司','error'); return; }
+      const d = await api('/api/admin/categories',{method:'POST',body:JSON.stringify({name,level,company_id})});
+      if (d.code===0) { toast('创建成功'); closeModal(); loadCategories(); loadStats(); }
+      else toast(d.message,'error');
+    } else if (type === 'category_edit') {
+      const name = document.getElementById('m-cat-name').value.trim();
+      const level = document.getElementById('m-cat-level').value;
+      const company_id = parseInt(document.getElementById('m-cat-company').value);
+      const id = body.dataset.editId;
+      if (!name) { toast('请输入分类名称','error'); return; }
+      const d = await api('/api/admin/categories/'+id,{method:'PUT',body:JSON.stringify({name,level,company_id})});
+      if (d.code===0) { toast('更新成功'); closeModal(); loadCategories(); }
+      else toast(d.message,'error');
+    } else if (type === 'message') {
+      const title = document.getElementById('m-msg-title').value.trim();
+      const content = document.getElementById('m-msg-content').value.trim();
+      const category_id = parseInt(document.getElementById('m-msg-cat')?.value) || null;
+      if (!content) { toast('请输入话术内容','error'); return; }
+      const d = await api('/api/admin/messages',{method:'POST',body:JSON.stringify({title:title||'未命名',content,category_id,created_by:1})});
+      if (d.code===0) { toast('创建成功'); closeModal(); loadMessages(); loadStats(); }
+      else toast(d.message,'error');
+    } else if (type === 'message_edit') {
+      const title = document.getElementById('m-msg-title').value.trim();
+      const content = document.getElementById('m-msg-content').value.trim();
+      const id = body.dataset.editId;
+      if (!content) { toast('请输入话术内容','error'); return; }
+      const d = await api('/api/admin/messages/'+id,{method:'PUT',body:JSON.stringify({title,updated_by:1})});
+      if (d.code===0) { toast('更新成功'); closeModal(); loadMessages(); }
+      else toast(d.message,'error');
+    }
+  } catch(e) { toast('操作失败','error'); }
+}
+
+// ====== 删除 ======
+async function delCompany(id) {
+  await api('/api/admin/companies/'+id,{method:'DELETE'});
+  toast('已删除');
+  loadAll();
+}
+async function delDept(id) {
+  const d = await api('/api/admin/departments/'+id,{method:'DELETE'});
+  if (d.code===0) { toast('已删除'); loadDepartments(); }
+  else toast(d.message,'error');
+}
+async function delUser(id) {
+  await api('/api/admin/users/'+id,{method:'DELETE'});
+  toast('已删除');
+  loadUsers(); loadStats();
+}
+async function delCat(id) {
+  await api('/api/admin/categories/'+id,{method:'DELETE'});
+  toast('已删除');
+  loadCategories(); loadStats();
+}
+async function delMsg(id) {
+  await api('/api/admin/messages/'+id,{method:'DELETE'});
+  toast('已删除');
+  loadMessages(); loadStats();
+}
+
+// ====== 工具 ======
+function esc(s) { if(!s)return''; const d=document.createElement('div'); d.textContent=s; return d.innerHTML; }
+function fmtTime(t) { if(!t)return'-'; return t.slice(0,16).replace('T',' '); }
+function truncate(s,n) { return s&&s.length>n?s.slice(0,n)+'...':s; }
+function roleTag(r) {
+  const m={super_admin:'tag-super',admin:'tag-admin',agent:'tag-agent',customer:'tag-agent'};
+  const l={super_admin:'超管',admin:'管理员',agent:'客服',customer:'用户'};
+  return `<span class="tag ${m[r]||'tag-agent'}">${l[r]||r}</span>`;
+}
+function statusTag(s) { return s==='active'?'<span class="tag tag-active">正常</span>':'<span class="tag tag-disabled">禁用</span>'; }
+function levelTag(l) {
+  const m={company:'tag-company',department:'tag-department',personal:'tag-personal'};
+  const n={company:'公司级',department:'部门级',personal:'个人级'};
+  return `<span class="tag ${m[l]||''}">${n[l]||l||'-'}</span>`;
+}
+function filterTable(tbId, q) {
+  q = q.toLowerCase();
+  document.querySelectorAll('#'+tbId+' tr').forEach(tr => {
+    tr.style.display = tr.textContent.toLowerCase().includes(q) ? '' : 'none';
+  });
+}
+</script>
+</body>
+</html>
